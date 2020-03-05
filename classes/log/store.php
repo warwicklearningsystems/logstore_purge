@@ -40,6 +40,15 @@ class store implements \tool_log\log\writer {
     }
 
     /**
+     * Should the event be ignored (== not logged)?
+     * @param \core\event\base $event
+     * @return bool
+     */
+    protected function is_event_ignored(\core\event\base $event) {
+        return false;
+    }
+
+    /**
      * Finally store the events into Splunk.
      *
      * @param array $evententries raw event data

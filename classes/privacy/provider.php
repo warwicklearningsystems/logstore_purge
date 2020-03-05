@@ -17,7 +17,7 @@
 /**
  * Data provider.
  *
- * @package    logstore_legacy
+ * @package    logstore_standard
  * @copyright  2018 Frédéric Massart
  * @author     Frédéric Massart <fred@branchup.tech>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -28,16 +28,12 @@ defined('MOODLE_INTERNAL') || die();
 
 use context;
 use core_privacy\local\metadata\collection;
-use core_privacy\local\request\approved_contextlist;
 use core_privacy\local\request\contextlist;
-use core_privacy\local\request\transform;
-use core_privacy\local\request\writer;
-use tool_log\local\privacy\helper;
 
 /**
  * Data provider class.
  *
- * @package    logstore_legacy
+ * @package    logstore_standard
  * @copyright  2018 Frédéric Massart
  * @author     Frédéric Massart <fred@branchup.tech>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -47,6 +43,8 @@ class provider implements
     \tool_log\local\privacy\logstore_provider,
     \tool_log\local\privacy\logstore_userlist_provider {
 
+    use \tool_log\local\privacy\moodle_database_export_and_delete;
+
     /**
      * Returns metadata.
      *
@@ -54,13 +52,16 @@ class provider implements
      * @return collection A listing of user data stored through this system.
      */
     public static function get_metadata(collection $collection) : collection {
-        $collection->add_external_location_link('log', [
-            'time' => 'privacy:metadata:log:time',
+        $collection->add_database_table('logstore_standard_log', [
+            'eventname' => 'privacy:metadata:log:eventname',
             'userid' => 'privacy:metadata:log:userid',
+            'relateduserid' => 'privacy:metadata:log:relateduserid',
+            'anonymous' => 'privacy:metadata:log:anonymous',
+            'other' => 'privacy:metadata:log:other',
+            'timecreated' => 'privacy:metadata:log:timecreated',
+            'origin' => 'privacy:metadata:log:origin',
             'ip' => 'privacy:metadata:log:ip',
-            'action' => 'privacy:metadata:log:action',
-            'url' => 'privacy:metadata:log:url',
-            'info' => 'privacy:metadata:log:info',
+            'realuserid' => 'privacy:metadata:log:realuserid',
         ], 'privacy:metadata:log');
         return $collection;
     }
@@ -74,20 +75,16 @@ class provider implements
      */
     public static function add_contexts_for_userid(contextlist $contextlist, $userid) {
         $sql = "
-            SELECT ctx.id
-              FROM {context} ctx
-              JOIN {log} l
-                ON (l.cmid = 0 AND l.course = ctx.instanceid AND ctx.contextlevel = :courselevel)
-                OR (l.cmid > 0 AND l.cmid = ctx.instanceid AND ctx.contextlevel = :modulelevel)
-                OR (l.course <= 0 AND ctx.id = :syscontextid)
-             WHERE l.userid = :userid";
-        $params = [
-            'courselevel' => CONTEXT_COURSE,
-            'modulelevel' => CONTEXT_MODULE,
-            'syscontextid' => SYSCONTEXTID,
-            'userid' => $userid,
-        ];
-        $contextlist->add_from_sql($sql, $params);
+            SELECT l.contextid
+              FROM {logstore_standard_log} l
+             WHERE l.userid = :userid1
+                OR l.relateduserid = :userid2
+                OR l.realuserid = :userid3";
+        $contextlist->add_from_sql($sql, [
+            'userid1' => $userid,
+            'userid2' => $userid,
+            'userid3' => $userid,
+        ]);
     }
 
     /**
@@ -97,159 +94,31 @@ class provider implements
      * @return void
      */
     public static function add_userids_for_context(\core_privacy\local\request\userlist $userlist) {
-        $context = $userlist->get_context();
-        list($insql, $params) = static::get_sql_where_from_contexts([$context]);
-
-        $sql = "SELECT l.userid
-                  FROM {log} l
-                 WHERE $insql";
+        $params = ['contextid' => $userlist->get_context()->id];
+        $sql = "SELECT userid, relateduserid, realuserid
+                  FROM {logstore_standard_log}
+                 WHERE contextid = :contextid";
         $userlist->add_from_sql('userid', $sql, $params);
+        $userlist->add_from_sql('relateduserid', $sql, $params);
+        $userlist->add_from_sql('realuserid', $sql, $params);
     }
 
     /**
-     * Export all user data for the specified user, in the specified contexts.
+     * Get the database object.
      *
-     * @param approved_contextlist $contextlist The approved contexts to export information for.
+     * @return array Containing moodle_database, string, or null values.
      */
-    public static function export_user_data(approved_contextlist $contextlist) {
+    protected static function get_database_and_table() {
         global $DB;
-
-        $userid = $contextlist->get_user()->id;
-        list($insql, $inparams) = static::get_sql_where_from_contexts($contextlist->get_contexts());
-        if (empty($insql)) {
-            return;
-        }
-        $sql = "userid = :userid AND $insql";
-        $params = array_merge($inparams, ['userid' => $userid]);
-
-        $path = [get_string('privacy:path:logs', 'tool_log'), get_string('pluginname', 'logstore_legacy')];
-        $flush = function($lastcontextid, $data) use ($path) {
-            $context = context::instance_by_id($lastcontextid);
-            writer::with_context($context)->export_data($path, (object) ['logs' => $data]);
-        };
-
-        $lastcontextid = null;
-        $data = [];
-        $recordset = $DB->get_recordset_select('log', $sql, $params, 'course, cmid, time, id');
-        foreach ($recordset as $record) {
-            $event = \logstore_legacy\event\legacy_logged::restore_legacy($record);
-            $context = $event->get_context();
-            if ($lastcontextid && $lastcontextid != $context->id) {
-                $flush($lastcontextid, $data);
-                $data = [];
-            }
-
-            $extra = $event->get_logextra();
-            $data[] = [
-                'name' => $event->get_name(),
-                'description' => $event->get_description(),
-                'timecreated' => transform::datetime($event->timecreated),
-                'ip' => $extra['ip'],
-                'origin' => helper::transform_origin($extra['origin']),
-            ];
-
-            $lastcontextid = $context->id;
-        }
-        if ($lastcontextid) {
-            $flush($lastcontextid, $data);
-        }
-        $recordset->close();
+        return [$DB, 'logstore_standard_log'];
     }
 
     /**
-     * Delete all data for all users in the specified context.
+     * Get the path to export the logs to.
      *
-     * @param context $context The specific context to delete data for.
+     * @return array
      */
-    public static function delete_data_for_all_users_in_context(context $context) {
-        global $DB;
-        list($sql, $params) = static::get_sql_where_from_contexts([$context]);
-        if (empty($sql)) {
-            return;
-        }
-        $DB->delete_records_select('log', $sql, $params);
-    }
-
-    /**
-     * Delete all user data for the specified user, in the specified contexts.
-     *
-     * @param approved_contextlist $contextlist The approved contexts and user information to delete information for.
-     */
-    public static function delete_data_for_user(approved_contextlist $contextlist) {
-        global $DB;
-        list($sql, $params) = static::get_sql_where_from_contexts($contextlist->get_contexts());
-        if (empty($sql)) {
-            return;
-        }
-        $userid = $contextlist->get_user()->id;
-        $DB->delete_records_select('log', "$sql AND userid = :userid", array_merge($params, ['userid' => $userid]));
-    }
-
-
-    /**
-     * Delete all data for a list of users in the specified context.
-     *
-     * @param \core_privacy\local\request\approved_userlist $userlist The specific context and users to delete data for.
-     * @return void
-     */
-    public static function delete_data_for_userlist(\core_privacy\local\request\approved_userlist $userlist) {
-        global $DB;
-        list($sql, $params) = static::get_sql_where_from_contexts([$userlist->get_context()]);
-        if (empty($sql)) {
-            return;
-        }
-        list($usersql, $userparams) = $DB->get_in_or_equal($userlist->get_userids(), SQL_PARAMS_NAMED);
-        $params = array_merge($params, $userparams);
-        $DB->delete_records_select('log', "$sql AND userid $usersql", $params);
-    }
-
-    /**
-     * Get an SQL where statement from a list of contexts.
-     *
-     * @param array $contexts The contexts.
-     * @return array [$sql, $params]
-     */
-    protected static function get_sql_where_from_contexts(array $contexts) {
-        global $DB;
-
-        $sorted = array_reduce($contexts, function ($carry, $context) {
-            $level = $context->contextlevel;
-            if ($level == CONTEXT_MODULE || $level == CONTEXT_COURSE) {
-                $carry[$level][] = $context->instanceid;
-            } else if ($level == CONTEXT_SYSTEM) {
-                $carry[$level] = $context->id;
-            }
-            return $carry;
-        }, [
-            CONTEXT_COURSE => [],
-            CONTEXT_MODULE => [],
-            CONTEXT_SYSTEM => null,
-        ]);
-
-        $sqls = [];
-        $params = [];
-
-        if (!empty($sorted[CONTEXT_MODULE])) {
-            list($insql, $inparams) = $DB->get_in_or_equal($sorted[CONTEXT_MODULE], SQL_PARAMS_NAMED);
-            $sqls[] = "cmid $insql";
-            $params = array_merge($params, $inparams);
-        }
-
-        if (!empty($sorted[CONTEXT_COURSE])) {
-            list($insql, $inparams) = $DB->get_in_or_equal($sorted[CONTEXT_COURSE], SQL_PARAMS_NAMED);
-
-            $sqls[] = "cmid = 0 AND course $insql";
-            $params = array_merge($params, $inparams);
-        }
-
-        if (!empty($sorted[CONTEXT_SYSTEM])) {
-            $sqls[] = "course <= 0";
-        }
-
-        if (empty($sqls)) {
-            return [null, null];
-        }
-
-        return ['((' . implode(') OR (', $sqls) . '))', $params];
+    protected static function get_export_subcontext() {
+        return [get_string('privacy:path:logs', 'tool_log'), get_string('pluginname', 'logstore_standard')];
     }
 }

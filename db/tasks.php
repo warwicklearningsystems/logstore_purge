@@ -26,7 +26,7 @@ defined('MOODLE_INTERNAL') || die();
 
 $tasks = array(
     array(
-        'classname' => '\logstore_purge\task\export_task',
+        'classname' => '\logstore_purge\task\purge_task',
         'blocking' => 0,
         'minute' => '*',
         'hour' => '*',

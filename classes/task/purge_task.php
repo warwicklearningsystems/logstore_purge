@@ -57,11 +57,11 @@ class purge_task extends \core\task\scheduled_task {
 //        $sqlwhere = "target IN ('calendar_event', 'webservice_function') AND timecreated < ?";
         $configtargets = (string)get_config('logstore_purge', 'eventtargets');
         $targets = preg_replace('/\s+/', '', $configtargets);
-	if (empty($targets) {
+	if (empty($targets)) {
             return;
         }
         $sqltarget = "'" . implode("','", explode(',', $targets)) . "'";
-        $sqlwhere = "target IN (". $sqltarget . ") AND timecreated < ?"
+        $sqlwhere = "target IN (". $sqltarget . ") AND timecreated < ?";
 
         while ($min = $DB->get_field_select("logstore_standard_log", "MIN(timecreated)", $sqlwhere, $lifetimep)) {
             // Break this down into chunks to avoid transaction for too long and generally thrashing database.

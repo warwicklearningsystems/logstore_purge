@@ -29,3 +29,7 @@ $string['eventtargets'] = 'Purge events with target';
 $string['eventtargetshelp'] = 'Event targets separated by commas';
 $string['loglifetime'] = 'Only purge events older than';
 $string['loglifetimehelp'] = 'All events younger than this will be retained';
+$string['maxproctime'] = 'Maximum processing time (mins)';
+$string['maxproctimehelp'] = '';
+$string['intervalchunk'] = 'Max interval of events processed per cycle (days)';
+$string['intervalchunkhelp'] = '';

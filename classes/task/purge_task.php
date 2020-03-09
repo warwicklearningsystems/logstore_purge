@@ -45,6 +45,8 @@ class purge_task extends \core\task\scheduled_task {
         global $DB;
 
         $loglifetime = (int)get_config('logstore_purge', 'loglifetime');
+        $maxtime = (int)get_config('logstore_purge', 'maxproctime');
+        $chunk = (int)get_config('logstore_purge', 'intervalchunk');
 
         if (empty($allloglifetime) || $allloglifetime < 0) {
             return;
@@ -67,9 +69,9 @@ class purge_task extends \core\task\scheduled_task {
             // Break this down into chunks to avoid transaction for too long and generally thrashing database.
             // Experiments suggest deleting one day takes up to a few seconds; probably a reasonable chunk size usually.
             // If the cleanup has just been enabled, it might take e.g a month to clean the years of logs.
-            $params = array(min($min + 3600 * 24, $loglifetime));
+            $params = array(min($min + 3600 * 24 * $chunk, $loglifetime));
             $DB->delete_records_select("logstore_standard_log", $sqlwhere, $params);
-            if (time() > $start + 300) {
+            if (time() > $start + $maxtime) {
                 // Do not churn on log deletion for too long each run.
                 break;
             }

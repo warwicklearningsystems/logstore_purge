@@ -29,12 +29,15 @@ if ($hassiteconfig) {
 
     $settings->add(new admin_setting_configtext('logstore_purge/eventtargets',
         new lang_string('eventtargets', 'logstore_purge'),
-        new lang_string('eventtargetshelp', 'logstore_purge'), '', PARAM_TEXT));
+        new lang_string('eventtargetshelp', 'logstore_purge'), 
+        '', PARAM_TEXT));
 
     $options = array(
         0    => new lang_string('neverdeletelogs'),
         1000 => new lang_string('numdays', '', 1000),
         365  => new lang_string('numdays', '', 365),
+        350  => new lang_string('numdays', '', 350),
+        300  => new lang_string('numdays', '', 300),
         180  => new lang_string('numdays', '', 180),
         150  => new lang_string('numdays', '', 150),
         120  => new lang_string('numdays', '', 120),
@@ -46,7 +49,18 @@ if ($hassiteconfig) {
         2    => new lang_string('numdays', '', 2));
     $settings->add(new admin_setting_configselect('logstore_purge/loglifetime',
         new lang_string('loglifetime', 'logstore_purge'),
-        new lang_string('loglifetimehelp', 'logstore_purge'), 0, $options));
+        new lang_string('loglifetimehelp', 'logstore_purge'), 
+        0, $options));
+
+    $settings->add(new admin_setting_configtext( 'logstore_purge/maxproctime',
+        new lang_string('maxproctime', 'logstore_purge'),
+        new lang_string('maxproctimehelp', 'logstore_purge'),
+        '300', PARAM_INT));
+
+    $settings->add(new admin_setting_configtext( 'logstore_purge/intervalchunk',
+        new lang_string('intervalchunk', 'logstore_purge'),
+        new lang_string('intervalchunkhelp', 'logstore_purge'),
+        '1', PARAM_INT));
 }
 
 /*

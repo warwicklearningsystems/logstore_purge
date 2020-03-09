@@ -47,9 +47,13 @@ class purge_task extends \core\task\scheduled_task {
         $loglifetime = (int)get_config('logstore_purge', 'loglifetime');
         $maxtime = (int)get_config('logstore_purge', 'maxproctime');
 #        $chunk = (int)get_config('logstore_purge', 'intervalchunk');
-        $maxdels = (int)get_config('logstore_purge', 'intervalchunk');
+        $maxdels = (int)get_config('logstore_purge', 'maxdeletions');
 
-        if (empty($allloglifetime) || $allloglifetime < 0) {
+var_dump($loglifetime);
+var_dump($maxtime);
+var_dump($maxdels);
+
+        if (empty($loglifetime) || $loglifetime < 0) {
             return;
         }
 
@@ -80,8 +84,14 @@ class purge_task extends \core\task\scheduled_task {
         }
 */
 
+var_dump($sqlwhere);
+var_dump($lifetimep);
+
         while ($count = $DB->get_field_select("logstore_standard_log", "COUNT(timecreated)", $sqlwhere, $lifetimep)) {
+var_dump($count);
             $sqlwherelimit = "target IN (". $sqltarget . ") AND timecreated < ? ORDER BY timecreated LIMIT " . min($maxdels,$count);
+var_dump($sqlwherelimit);
+return;
             $DB->delete_records_select("logstore_standard_log", $sqlwherelimit, $lifetimep);
 
             if (time() > $start + $maxtime) {

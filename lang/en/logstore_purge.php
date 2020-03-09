@@ -29,6 +29,7 @@ $string['eventtargets'] = 'Purge events with target';
 $string['eventtargetshelp'] = 'Event targets separated by commas';
 $string['loglifetime'] = 'Only purge events older than';
 $string['loglifetimehelp'] = 'All events younger than this will be retained';
+$string['neverpurgeevents'] = 'Never purge events';
 $string['maxproctime'] = 'Max processing time (secs)';
 $string['maxproctimehelp'] = '';
 $string['maxdels'] = 'Max number of events deleted between time expiry checks';

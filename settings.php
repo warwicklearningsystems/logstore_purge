@@ -33,7 +33,7 @@ if ($hassiteconfig) {
         '', PARAM_TEXT));
 
     $options = array(
-        0    => new lang_string('neverdeletelogs'),
+        0    => new lang_string('neverpurgeevents', 'logstore_purge'),
         1000 => new lang_string('numdays', '', 1000),
         365  => new lang_string('numdays', '', 365),
         350  => new lang_string('numdays', '', 350),
@@ -43,7 +43,7 @@ if ($hassiteconfig) {
         120  => new lang_string('numdays', '', 120),
         90   => new lang_string('numdays', '', 90),
         60   => new lang_string('numdays', '', 60),
-        35   => new lang_string('numdays', '', 35),
+        30   => new lang_string('numdays', '', 30),
         10   => new lang_string('numdays', '', 10),
         5    => new lang_string('numdays', '', 5),
         2    => new lang_string('numdays', '', 2));

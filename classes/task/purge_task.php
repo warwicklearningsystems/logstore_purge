@@ -88,10 +88,10 @@ var_dump($sqlwhere);
 var_dump($lifetimep);
 
         while ($count = $DB->get_field_select("logstore_standard_log", "COUNT(timecreated)", $sqlwhere, $lifetimep)) {
-var_dump($count);
             $sqlwherelimit = "target IN (". $sqltarget . ") AND timecreated < ? ORDER BY timecreated LIMIT " . min($maxdels,$count);
+var_dump($count);
 var_dump($sqlwherelimit);
-return;
+# return;
             $DB->delete_records_select("logstore_standard_log", $sqlwherelimit, $lifetimep);
 
             if (time() > $start + $maxtime) {

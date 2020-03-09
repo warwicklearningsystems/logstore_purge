@@ -57,10 +57,17 @@ if ($hassiteconfig) {
         new lang_string('maxproctimehelp', 'logstore_purge'),
         '300', PARAM_INT));
 
+    $settings->add(new admin_setting_configtext( 'logstore_purge/maxdeletions',
+        new lang_string('maxdels', 'logstore_purge'),
+        new lang_string('maxdelshelp', 'logstore_purge'),
+        '10000', PARAM_INT));
+
+/*
     $settings->add(new admin_setting_configtext( 'logstore_purge/intervalchunk',
         new lang_string('intervalchunk', 'logstore_purge'),
         new lang_string('intervalchunkhelp', 'logstore_purge'),
         '1', PARAM_INT));
+*/
 }
 
 /*

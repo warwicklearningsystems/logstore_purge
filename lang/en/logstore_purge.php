@@ -24,6 +24,7 @@
 
 $string['pluginname'] = 'Log Purger';
 $string['pluginname_desc'] = 'A log plugin that deletes legacy log entries, matchiing specified targets, from the Moodle logstore table.';
+$string['privacy:metadata'] = 'The log purger only deletes data.';
 $string['tasklogpurge'] = 'Log table purger';
 $string['eventtargets'] = 'Purge events with target';
 $string['eventtargetshelp'] = 'Event targets separated by commas';
@@ -31,8 +32,6 @@ $string['loglifetime'] = 'Only purge events older than';
 $string['loglifetimehelp'] = 'All events younger than this will be retained';
 $string['neverpurgeevents'] = 'Never purge events';
 $string['maxproctime'] = 'Max processing time (secs)';
-$string['maxproctimehelp'] = '';
+$string['maxproctimehelp'] = 'If exceeded, processing ends before next chunk of events are deleted';
 $string['maxdels'] = 'Max number of events deleted between time expiry checks';
-$string['maxdelshelp'] = '';
-$string['intervalchunk'] = 'Max interval of events processed per cycle (days)';
-$string['intervalchunkhelp'] = '';
+$string['maxdelshelp'] = 'Chunk size';

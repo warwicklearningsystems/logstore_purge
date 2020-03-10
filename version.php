@@ -18,7 +18,7 @@
  * Purge log store.
  *
  * @package    logstore_purge
- * @copyright  2016 Skylar Kelty <S.Kelty@kent.ac.uk>
+ * @copyright  2020 Univerfsity of Warwick
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

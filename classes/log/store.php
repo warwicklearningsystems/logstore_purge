@@ -54,6 +54,6 @@ class store implements \tool_log\log\writer {
      * @param array $evententries raw event data
      */
     protected function insert_event_entries($evententries) {
-            return;
+        return;
     }
 }

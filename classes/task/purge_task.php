@@ -66,26 +66,13 @@ class purge_task extends \core\task\scheduled_task {
 
         $configtargets = (string)get_config('logstore_purge', 'eventtargets');
         $targets = preg_replace('/\s+/', '', $configtargets);
-	if (empty($targets)) {
+        if (empty($targets)) {
             return;
         }
         $sqltarget = "'" . implode("','", explode(',', $targets)) . "'";
         $sqlwhere = "target IN (". $sqltarget . ") AND timecreated < ?";
 
-/*       while ($min = $DB->get_field_select("logstore_standard_log", "MIN(timecreated)", $sqlwhere, $lifetimep)) {
-            // Break this down into chunks to avoid transaction for too long and generally thrashing database.
-            // Experiments suggest deleting one day takes up to a few seconds; probably a reasonable chunk size usually.
-            // If the cleanup has just been enabled, it might take e.g a month to clean the years of logs.
-            $params = array(min($min + 3600 * 24 * $chunk, $loglifetime));
-            $DB->delete_records_select("logstore_standard_log", $sqlwhere, $params);
-
-            if (time() > $start + $maxtime) {
-                // Do not churn on log deletion for too long each run.
-                break;
-            }
-        } */
-
-	debug_var_dump($sqlwhere); debug_var_dump($lifetimep);
+        debug_var_dump($sqlwhere); debug_var_dump($lifetimep);
 
         while ($count = $DB->get_field_select("logstore_standard_log", "COUNT(timecreated)", $sqlwhere, $lifetimep)) {
             $sqlwherelimit = "target IN (". $sqltarget . ") AND timecreated < ? ORDER BY timecreated LIMIT " . min($maxdels,$count);
@@ -97,6 +84,6 @@ class purge_task extends \core\task\scheduled_task {
                 break;
             }
         }
-        mtrace(" Deleted legacy log records from standard store.");
+        mtrace(" Purged legacy log records from standard store.");
     }
 }
